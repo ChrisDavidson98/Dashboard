@@ -109,6 +109,8 @@
   .row:last-child { border-bottom: none; }
   .row-id { flex: 0 0 178px; min-width: 0; }
   .row-address { font-family: "Barlow Condensed", sans-serif; font-weight: 600; font-size: 15.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .row-address-link { cursor: pointer; }
+  .row-address-link:hover { color: var(--accent); text-decoration: underline; }
   .row-meta { font-family: "DM Mono", monospace; font-size: 10.5px; color: var(--text-muted); margin-top: 1px; }
   .row-dial { flex: 0 0 auto; display: flex; align-items: center; }
   .row-dial svg { width: 44px; height: 44px; }
@@ -566,12 +568,12 @@ function Dial({ pct, status }) {
     </svg>
   );
 }
-function Row({ house, data }) {
+function Row({ house, data, onSelect }) {
   const st = STATUS_META[data.status];
   return (
     <div className="row">
       <div className="row-id">
-        <div className="row-address">{house.address}</div>
+        <div className="row-address row-address-link" onClick={() => onSelect(house.address)}>{house.address}</div>
         <div className="row-meta">{house.subdivision || '—'} · {house.superintendent}</div>
       </div>
       <div className="row-dial"><Dial pct={data.pct} status={data.status} /></div>
@@ -582,7 +584,7 @@ function Row({ house, data }) {
     </div>
   );
 }
-function Section({ tool, houses }) {
+function Section({ tool, houses, onSelect }) {
   const [open, setOpen] = useState(false);
   const all = houses
     .map(h => ({ house: h, data: h.rings[tool.key] }))
@@ -605,7 +607,7 @@ function Section({ tool, houses }) {
       </div>
       <div className="rows">
         {visible.length
-          ? visible.map(e => <Row key={e.house.address} house={e.house} data={e.data} />)
+          ? visible.map(e => <Row key={e.house.address} house={e.house} data={e.data} onSelect={onSelect} />)
           : <div className="empty-row">No houses in this tool yet</div>}
       </div>
       {hidden > 0 && <div className="more-row" onClick={() => setOpen(true)}>+ {hidden} more — worst-first shown above, click to see all</div>}
@@ -822,7 +824,7 @@ function App() {
         <React.Fragment>
           <div className="kpis">{computeKpis(filtered).map(k => <KpiTile key={k.label} k={k} />)}</div>
           <ClosingsRow houses={filtered} />
-          <div className="sections">{TOOLS.map(t => <Section key={t.key} tool={t} houses={filtered} />)}</div>
+          <div className="sections">{TOOLS.map(t => <Section key={t.key} tool={t} houses={filtered} onSelect={addr => { setSelectedAddress(addr); setSearch(addr); }} />)}</div>
           <div className="legend">
             {Object.values(STATUS_META).map(s => (
               <div className="legend-item" key={s.text}><span className="dot" style={{ background: s.color }} /> {s.text}</div>
