@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Prieb Homes — Portfolio</title>
+<title>Dashboard</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
@@ -109,7 +109,7 @@
   .row:last-child { border-bottom: none; }
   .row-id { flex: 0 0 178px; min-width: 0; }
   .row-address { font-family: "Barlow Condensed", sans-serif; font-weight: 600; font-size: 15.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .row-address-link { cursor: pointer; }
+  .row-address-link { cursor: pointer; color: inherit; text-decoration: none; }
   .row-address-link:hover { color: var(--accent); text-decoration: underline; }
   .row-meta { font-family: "DM Mono", monospace; font-size: 10.5px; color: var(--text-muted); margin-top: 1px; }
   .row-dial { flex: 0 0 auto; display: flex; align-items: center; }
@@ -180,6 +180,22 @@ const { useState, useEffect, useMemo, useCallback } = React;
 // Rate limiting on each backend is the real protection, not secrecy
 // of the token — see this repo's CLAUDE.md before "fixing" that.
 // ════════════════════════════════════════════════════════════════
+// Live front-end pages for the tools that support landing on one specific
+// record via a URL param (added to their own repos alongside this feature).
+// Schedule Trend has no per-house record to land on — it's populated by
+// weekly PDF uploads, not per-house entry — so it isn't listed here.
+const TOOL_PAGES = {
+  buildtrack: 'https://chrisdavidson98.github.io/BuildTrack-Unified/',
+  scope: 'https://chrisdavidson98.github.io/BuildTrack-Unified/',
+  punch: 'https://chrisdavidson98.github.io/PunchTrack/',
+};
+function deepLinkFor(toolKey, house) {
+  if (toolKey === 'buildtrack' && house.buildtrackId) return `${TOOL_PAGES.buildtrack}?house=${encodeURIComponent(house.buildtrackId)}`;
+  if (toolKey === 'scope' && house.scopeSlug) return `${TOOL_PAGES.scope}?scope=${encodeURIComponent(house.scopeSlug)}`;
+  if (toolKey === 'punch' && house.punchSlug) return `${TOOL_PAGES.punch}?job=${encodeURIComponent(house.punchSlug)}`;
+  return null;
+}
+
 const BACKENDS = {
   buildtrack: {
     label: 'BuildTrack',
@@ -367,7 +383,7 @@ function scheduleStatusByAddress(allRows) {
     if (drift === 'watch') status = 'warning';
     if (drift === 'stuck') status = 'critical';
     const note = drift && drift !== 'normal'
-      ? `${last.stage} — ${drift === 'stuck' ? 'stuck' : 'running long'}`
+      ? `${last.stage} — ${drift === 'stuck' ? 'stalled' : 'running long'}`
       : last.stage;
     out[key] = { pct: Math.max(0, Math.min(100, pct)), status, note };
   });
@@ -433,7 +449,7 @@ const STATUS_META = {
   good:     { color: 'var(--status-good)',     className: 'status-good',     text: 'On track' },
   warning:  { color: 'var(--status-warning)',  className: 'status-warning',  text: 'Watch' },
   serious:  { color: 'var(--status-serious)',  className: 'status-serious',  text: 'Slipping' },
-  critical: { color: 'var(--status-critical)', className: 'status-critical', text: 'Stuck' },
+  critical: { color: 'var(--status-critical)', className: 'status-critical', text: 'Stalled' },
 };
 const STATUS_RANK = { critical: 0, serious: 1, warning: 2, good: 3 };
 const TOOLS = [
@@ -464,6 +480,9 @@ async function loadAll() {
         superintendent: superintendentFor(h.subdivision),
         milestones: h.milestones || {},
         bonuses: h.bonuses || {},
+        buildtrackId: h.id || null,
+        scopeSlug: null,
+        punchSlug: null,
         rings: { buildtrack: computeBuildTrackStatus(h), scope: null, punch: null, sched: null },
       };
     });
@@ -475,12 +494,13 @@ async function loadAll() {
     const results = await Promise.all((jobs || []).map(async (j) => {
       try {
         const job = await backendGet('scope', 'getJob', { slug: j.slug });
-        return { address: j.address, status: computeScopeStatus(job.items || []) };
+        return { address: j.address, slug: j.slug, status: computeScopeStatus(job.items || []) };
       } catch (e) { return null; }
     }));
-    results.filter(Boolean).forEach(({ address, status }) => {
+    results.filter(Boolean).forEach(({ address, slug, status }) => {
       const key = normalizeAddress(address);
-      if (!houses[key]) houses[key] = { address, subdivision: '', superintendent: '—', milestones: {}, bonuses: {}, rings: { buildtrack: null, scope: null, punch: null, sched: null } };
+      if (!houses[key]) houses[key] = { address, subdivision: '', superintendent: '—', milestones: {}, bonuses: {}, buildtrackId: null, scopeSlug: null, punchSlug: null, rings: { buildtrack: null, scope: null, punch: null, sched: null } };
+      houses[key].scopeSlug = slug;
       houses[key].rings.scope = status;
     });
   } catch (e) { errors.push(e.message || String(e)); }
@@ -491,12 +511,13 @@ async function loadAll() {
     const results = await Promise.all((jobs || []).map(async (j) => {
       try {
         const job = await backendGet('punch', 'getJob', { slug: j.slug });
-        return { address: j.address, status: computePunchStatus(job.items || []) };
+        return { address: j.address, slug: j.slug, status: computePunchStatus(job.items || []) };
       } catch (e) { return null; }
     }));
-    results.filter(Boolean).forEach(({ address, status }) => {
+    results.filter(Boolean).forEach(({ address, slug, status }) => {
       const key = normalizeAddress(address);
-      if (!houses[key]) houses[key] = { address, subdivision: '', superintendent: '—', milestones: {}, bonuses: {}, rings: { buildtrack: null, scope: null, punch: null, sched: null } };
+      if (!houses[key]) houses[key] = { address, subdivision: '', superintendent: '—', milestones: {}, bonuses: {}, buildtrackId: null, scopeSlug: null, punchSlug: null, rings: { buildtrack: null, scope: null, punch: null, sched: null } };
+      houses[key].punchSlug = slug;
       houses[key].rings.punch = status;
     });
   } catch (e) { errors.push(e.message || String(e)); }
@@ -515,7 +536,7 @@ async function loadAll() {
     Object.entries(statusByKey).forEach(([key, status]) => {
       if (!houses[key]) {
         const info = addrByKey[key] || {};
-        houses[key] = { address: info.address || key, subdivision: info.subdivision || '', superintendent: superintendentFor(info.subdivision), milestones: {}, bonuses: {}, rings: { buildtrack: null, scope: null, punch: null, sched: null } };
+        houses[key] = { address: info.address || key, subdivision: info.subdivision || '', superintendent: superintendentFor(info.subdivision), milestones: {}, bonuses: {}, buildtrackId: null, scopeSlug: null, punchSlug: null, rings: { buildtrack: null, scope: null, punch: null, sched: null } };
       }
       houses[key].rings.sched = status;
     });
@@ -550,7 +571,7 @@ function computeKpis(houses) {
   const activeJobs = houses.reduce((sum, h) => sum + TOOLS.filter(t => h.rings[t.key]).length, 0);
   return [
     { label: 'Total Houses', value: total, icon: 'home', sub: 'across the portfolio', tone: 'neutral' },
-    { label: 'Need Attention', value: flagged, icon: 'alert', sub: flagged ? 'slipping or stuck somewhere' : 'nothing flagged', tone: flagged ? 'warn' : 'ok' },
+    { label: 'Need Attention', value: flagged, icon: 'alert', sub: flagged ? 'slipping or stalled somewhere' : 'nothing flagged', tone: flagged ? 'warn' : 'ok' },
     { label: 'Fully Closed', value: closed, icon: 'check', sub: 'complete in every tool', tone: 'ok' },
     { label: 'Active Tool Jobs', value: activeJobs, icon: 'list', sub: 'total across all 4 tools', tone: 'neutral' },
   ];
@@ -568,12 +589,15 @@ function Dial({ pct, status }) {
     </svg>
   );
 }
-function Row({ house, data, onSelect }) {
+function Row({ house, data, toolKey, onSelect }) {
   const st = STATUS_META[data.status];
+  const link = deepLinkFor(toolKey, house);
   return (
     <div className="row">
       <div className="row-id">
-        <div className="row-address row-address-link" onClick={() => onSelect(house.address)}>{house.address}</div>
+        {link
+          ? <a className="row-address row-address-link" href={link} target="_blank" rel="noopener noreferrer">{house.address}</a>
+          : <div className="row-address row-address-link" onClick={() => onSelect(house.address)}>{house.address}</div>}
         <div className="row-meta">{house.subdivision || '—'} · {house.superintendent}</div>
       </div>
       <div className="row-dial"><Dial pct={data.pct} status={data.status} /></div>
@@ -607,7 +631,7 @@ function Section({ tool, houses, onSelect }) {
       </div>
       <div className="rows">
         {visible.length
-          ? visible.map(e => <Row key={e.house.address} house={e.house} data={e.data} onSelect={onSelect} />)
+          ? visible.map(e => <Row key={e.house.address} house={e.house} data={e.data} toolKey={tool.key} onSelect={onSelect} />)
           : <div className="empty-row">No houses in this tool yet</div>}
       </div>
       {hidden > 0 && <div className="more-row" onClick={() => setOpen(true)}>+ {hidden} more — worst-first shown above, click to see all</div>}
@@ -761,7 +785,7 @@ function App() {
     <div className="wrap">
       <header className="top">
         <div>
-          <h1 className="cond">Prieb Homes — Portfolio</h1>
+          <h1 className="cond">Dashboard</h1>
           <div className="subtitle mono">Live from BuildTrack, Scope Deviation, PunchTrack &amp; Schedule Trend</div>
         </div>
       </header>
