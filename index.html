@@ -1,0 +1,851 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Prieb Homes — Portfolio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<style>
+  :root {
+    color-scheme: dark;
+    --surface-1:      #1a1a19;
+    --surface-2:      #202020;
+    --page:           #0d0d0d;
+    --text-primary:   #ffffff;
+    --text-secondary: #c3c2b7;
+    --text-muted:     #898781;
+    --border:         rgba(255,255,255,0.10);
+    --border-strong:  rgba(255,255,255,0.18);
+    --accent:         #3987e5;
+    --status-good:      #0ca30c;
+    --status-warning:   #fab219;
+    --status-serious:   #ec835a;
+    --status-critical:  #d03b3b;
+    --track:          #383835;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  html { background: #0d0d0d; }
+  body {
+    background: #0d0d0d;
+    color: #ffffff;
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  .mono { font-family: "DM Mono", ui-monospace, monospace; }
+  .cond { font-family: "Barlow Condensed", system-ui, sans-serif; }
+  .wrap { max-width: 1180px; margin: 0 auto; padding: 40px 28px 80px; }
+  header.top { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 6px; flex-wrap: wrap; gap: 12px; }
+  h1.cond { font-weight: 600; font-size: 30px; letter-spacing: 0.2px; margin: 0; text-transform: uppercase; }
+  .subtitle { color: var(--text-muted); font-size: 13px; margin-top: 4px; }
+  .toolbar { display: flex; align-items: center; gap: 10px; margin: 22px 0 26px; flex-wrap: wrap; }
+  .chip { font-family: "DM Mono", monospace; font-size: 12px; color: var(--text-secondary); background: var(--surface-2); border: 1px solid var(--border); padding: 6px 12px; border-radius: 999px; cursor: pointer; }
+  .chip.active { color: var(--text-primary); border-color: var(--border-strong); background: #262624; }
+  .nb-dropdown { position: relative; }
+  .nb-dropdown-list {
+    position: absolute; top: calc(100% + 4px); left: 0; z-index: 5; min-width: 200px;
+    background: var(--surface-2); border: 1px solid var(--border-strong); border-radius: 8px; overflow: hidden;
+  }
+  .nb-dropdown-item {
+    padding: 8px 14px; font-family: "DM Mono", monospace; font-size: 12px; color: var(--text-secondary);
+    cursor: pointer; border-bottom: 1px solid var(--border); white-space: nowrap;
+  }
+  .nb-dropdown-item:last-child { border-bottom: none; }
+  .nb-dropdown-item:hover { background: var(--surface-1); color: var(--text-primary); }
+  .nb-dropdown-item.active { color: var(--accent); }
+  .refresh-btn { margin-left: auto; display: flex; align-items: center; gap: 7px; font-family: "DM Mono", monospace; font-size: 12px; color: var(--text-secondary); background: var(--surface-2); border: 1px solid var(--border); padding: 7px 13px; border-radius: 7px; cursor: pointer; }
+  .refresh-btn:hover { color: var(--text-primary); border-color: var(--border-strong); }
+  .refresh-btn:disabled { opacity: 0.5; cursor: default; }
+  .refresh-btn svg { width: 13px; height: 13px; }
+  .refresh-btn svg.spin { animation: spin 0.8s linear infinite; }
+  @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+  .last-sync { font-size: 11px; color: var(--text-muted); margin-left: 10px; }
+  .errors { font-family: "DM Mono", monospace; font-size: 11.5px; color: var(--status-critical); margin-bottom: 16px; padding: 10px 14px; border: 1px solid rgba(208,59,59,0.35); background: rgba(208,59,59,0.08); border-radius: 8px; }
+  .kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px; margin-bottom: 16px; }
+  .kpi { background: var(--surface-1); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; display: flex; flex-direction: column; gap: 6px; }
+  .kpi-top { display: flex; align-items: center; justify-content: space-between; }
+  .kpi-label { font-family: "DM Mono", monospace; font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.4px; }
+  .kpi-icon { width: 15px; height: 15px; color: var(--text-muted); }
+  .kpi-value { font-family: "DM Mono", monospace; font-variant-numeric: tabular-nums; font-size: 26px; font-weight: 500; color: var(--text-primary); }
+  .kpi-sub { font-family: "DM Mono", monospace; font-size: 11px; }
+  .kpi-sub.ok { color: var(--status-good); }
+  .kpi-sub.warn { color: var(--status-critical); }
+  .kpi-sub.neutral { color: var(--text-muted); }
+  .closings { background: var(--surface-1); border: 1px solid var(--border); border-radius: 12px; margin-bottom: 16px; overflow: hidden; }
+  .closings-head { display: flex; align-items: baseline; justify-content: space-between; padding: 16px 18px 14px; border-bottom: 1px solid var(--border); }
+  .closings-title { font-family: "Barlow Condensed", sans-serif; font-weight: 600; font-size: 20px; text-transform: uppercase; letter-spacing: 0.3px; }
+  .closings-sub { font-family: "DM Mono", monospace; font-size: 11.5px; color: var(--text-muted); }
+  .closings-row { display: flex; gap: 12px; padding: 14px 18px; overflow-x: auto; }
+  .closing-card { flex: 0 0 200px; background: var(--surface-2); border: 1px solid var(--border); border-radius: 10px; padding: 13px 14px; }
+  .closing-day-line { display: flex; align-items: baseline; gap: 7px; margin-bottom: 8px; }
+  .closing-day { font-family: "Barlow Condensed", sans-serif; font-weight: 700; font-size: 17px; color: var(--accent); letter-spacing: 0.4px; }
+  .closing-date { font-family: "DM Mono", monospace; font-size: 10.5px; color: var(--text-muted); }
+  .closing-address { font-family: "Barlow Condensed", sans-serif; font-weight: 600; font-size: 15.5px; line-height: 1.25; }
+  .closing-meta { font-family: "DM Mono", monospace; font-size: 10.5px; color: var(--text-muted); margin-top: 2px; margin-bottom: 10px; }
+  .closing-badges { display: flex; flex-direction: column; gap: 5px; align-items: flex-start; }
+  .closing-badge { display: inline-flex; align-items: center; gap: 5px; font-family: "DM Mono", monospace; font-size: 10px; padding: 3px 8px; border-radius: 5px; }
+  .closing-badge svg { width: 11px; height: 11px; }
+  .badge-yes { color: var(--status-good); background: rgba(12,163,12,0.12); }
+  .badge-no  { color: var(--text-muted); background: rgba(255,255,255,0.05); }
+  .closings-empty { padding: 20px 18px; font-family: "DM Mono", monospace; font-size: 11.5px; color: var(--text-muted); font-style: italic; }
+  .sections { display: grid; grid-template-columns: repeat(auto-fit, minmax(430px, 1fr)); gap: 16px; }
+  .section { background: var(--surface-1); border: 1px solid var(--border); border-radius: 12px; padding: 0; overflow: hidden; }
+  .section-head { display: flex; align-items: center; justify-content: space-between; padding: 16px 16px 14px 18px; border-bottom: 1px solid var(--border); cursor: pointer; transition: background 0.12s ease; }
+  .section-head:hover { background: var(--surface-2); }
+  .section-head:hover .section-link { color: var(--accent); }
+  .section-title-wrap { display: flex; align-items: baseline; gap: 10px; }
+  .section-title { font-family: "Barlow Condensed", sans-serif; font-weight: 600; font-size: 20px; text-transform: uppercase; letter-spacing: 0.3px; }
+  .section-stat { font-family: "DM Mono", monospace; font-size: 11.5px; color: var(--text-muted); }
+  .section-stat b { color: var(--text-secondary); font-weight: 500; }
+  .section-link { display: flex; align-items: center; gap: 4px; font-family: "DM Mono", monospace; font-size: 11px; color: var(--text-muted); white-space: nowrap; flex: 0 0 auto; }
+  .section-link svg { width: 12px; height: 12px; transition: transform 0.12s ease; }
+  .section-link svg.open { transform: rotate(90deg); }
+  .rows { display: flex; flex-direction: column; }
+  .row { display: flex; align-items: center; gap: 14px; padding: 11px 18px; border-bottom: 1px solid var(--border); }
+  .row:last-child { border-bottom: none; }
+  .row-id { flex: 0 0 178px; min-width: 0; }
+  .row-address { font-family: "Barlow Condensed", sans-serif; font-weight: 600; font-size: 15.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .row-meta { font-family: "DM Mono", monospace; font-size: 10.5px; color: var(--text-muted); margin-top: 1px; }
+  .row-dial { flex: 0 0 auto; display: flex; align-items: center; }
+  .row-dial svg { width: 44px; height: 44px; }
+  .dial-track { fill: none; stroke: var(--track); stroke-width: 4.5; }
+  .dial-fill { fill: none; stroke-width: 4.5; stroke-linecap: round; transform: rotate(-90deg); transform-origin: 50% 50%; }
+  .dial-pct { font-family: "DM Mono", monospace; font-variant-numeric: tabular-nums; font-size: 11.5px; fill: var(--text-primary); }
+  .status-good      { color: var(--status-good); }
+  .status-warning   { color: var(--status-warning); }
+  .status-serious   { color: var(--status-serious); }
+  .status-critical  { color: var(--status-critical); }
+  .row-flag-slot { flex: 0 0 78px; }
+  .row-flag { font-family: "DM Mono", monospace; font-size: 10px; text-align: center; padding: 3px 8px; border-radius: 5px; white-space: nowrap; display: inline-block; }
+  .row-flag.status-warning   { background: rgba(250,178,25,0.12); }
+  .row-flag.status-serious   { background: rgba(236,131,90,0.12); }
+  .row-flag.status-critical  { background: rgba(208,59,59,0.12); }
+  .row-note { flex: 1; min-width: 0; font-family: "DM Mono", monospace; font-size: 10.5px; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .empty-row { padding: 18px; text-align: center; font-family: "DM Mono", monospace; font-size: 11.5px; color: var(--text-muted); font-style: italic; }
+  .more-row { padding: 10px 18px; text-align: center; font-family: "DM Mono", monospace; font-size: 11px; color: var(--text-muted); cursor: pointer; border-top: 1px dashed var(--border); }
+  .more-row:hover { color: var(--accent); }
+  .legend { display: flex; gap: 18px; flex-wrap: wrap; margin-top: 30px; padding-top: 18px; border-top: 1px solid var(--border); font-family: "DM Mono", monospace; font-size: 11.5px; color: var(--text-muted); }
+  .legend-item { display: flex; align-items: center; gap: 6px; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; }
+  .loading-wrap { padding: 80px 0; text-align: center; font-family: "DM Mono", monospace; color: var(--text-muted); }
+  .search-wrap { position: relative; flex: 1 1 220px; min-width: 180px; max-width: 340px; }
+  .search-input {
+    width: 100%; font-family: "DM Mono", monospace; font-size: 12px; color: var(--text-primary);
+    background: var(--surface-2); border: 1px solid var(--border); padding: 7px 12px; border-radius: 7px;
+  }
+  .search-input:focus { outline: none; border-color: var(--accent); }
+  .search-results {
+    position: absolute; top: calc(100% + 4px); left: 0; right: 0; z-index: 5;
+    background: var(--surface-2); border: 1px solid var(--border-strong); border-radius: 8px;
+    overflow: hidden; max-height: 260px; overflow-y: auto;
+  }
+  .search-result-item {
+    padding: 9px 12px; font-family: "DM Mono", monospace; font-size: 12px; cursor: pointer;
+    border-bottom: 1px solid var(--border);
+  }
+  .search-result-item:last-child { border-bottom: none; }
+  .search-result-item:hover { background: var(--surface-1); color: var(--accent); }
+  .search-result-empty { padding: 10px 12px; font-family: "DM Mono", monospace; font-size: 11.5px; color: var(--text-muted); font-style: italic; }
+  .detail-card { background: var(--surface-1); border: 1px solid var(--border); border-radius: 12px; margin-bottom: 16px; overflow: hidden; }
+  .detail-head { display: flex; align-items: flex-start; justify-content: space-between; padding: 18px 20px; border-bottom: 1px solid var(--border); }
+  .detail-address { font-family: "Barlow Condensed", sans-serif; font-weight: 600; font-size: 24px; text-transform: uppercase; letter-spacing: 0.2px; }
+  .detail-meta { font-family: "DM Mono", monospace; font-size: 12px; color: var(--text-muted); margin-top: 4px; }
+  .detail-close { font-family: "DM Mono", monospace; font-size: 11.5px; color: var(--text-muted); cursor: pointer; padding: 6px 12px; border: 1px solid var(--border); border-radius: 7px; }
+  .detail-close:hover { color: var(--text-primary); border-color: var(--border-strong); }
+  .detail-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1px; background: var(--border); }
+  .detail-tool { background: var(--surface-1); padding: 16px 20px; display: flex; align-items: center; gap: 14px; }
+  .detail-tool-label { font-family: "Barlow Condensed", sans-serif; font-weight: 600; font-size: 14px; text-transform: uppercase; color: var(--text-secondary); }
+  .detail-tool-note { font-family: "DM Mono", monospace; font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+  .detail-tool-empty { font-family: "DM Mono", monospace; font-size: 11px; color: var(--text-muted); font-style: italic; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/plain" id="app-source">
+const { useState, useEffect, useMemo, useCallback } = React;
+
+// ════════════════════════════════════════════════════════════════
+// CONFIGURE — one SCRIPT_URL + APP_TOKEN pair per source backend.
+// This dashboard has no backend of its own; it reads directly from
+// the four tools' existing Apps Script web apps, client-side. Same
+// accepted tradeoff as every other tool in this ecosystem: these
+// values are visible to anyone who views source on this page.
+// Rate limiting on each backend is the real protection, not secrecy
+// of the token — see this repo's CLAUDE.md before "fixing" that.
+// ════════════════════════════════════════════════════════════════
+const BACKENDS = {
+  buildtrack: {
+    label: 'BuildTrack',
+    url: 'https://script.google.com/macros/s/AKfycbyOD3tU4NA9Rq8hBeCkgtcelQ6S5Ze1CQXfX2alC3bwgA-oB2sRCbzs_GJv1PWw5B6o/exec',
+    token: 'SKtGAUDUq61-3gNzf2W3bRU9efmobvE1',
+  },
+  scope: {
+    label: 'Scope Dev',
+    url: 'https://script.google.com/macros/s/AKfycbyIx1l9KW9foRfFJMWe25_V0j-Fnwqyju9s3vS-J0kfKMAguOZ8A9rjLrZfOqReoOqMvw/exec',
+    token: 'zvUiph3WAO-g-_b6plWlO9SxXasZcx8t-8UhzuKSr7s',
+  },
+  punch: {
+    label: 'PunchTrack',
+    url: 'https://script.google.com/macros/s/AKfycbzHpWKcsT9w01rxs4wzrtfI-G2dbrp6LsPkX3x_W2KR8AyLFVsaszQBwUh6f4l01wr74g/exec',
+    token: 'pWojP7euA3jW-E8XNYYr4TQZDPFfJxnh',
+  },
+  sched: {
+    label: 'Sched Trend',
+    url: 'https://script.google.com/macros/s/AKfycby7xpkt_RLdH2d7JNBbD4T7gJPOW3ulBh7ukQhTseds8uwdmTIapuq6Nwwpgqi7SYPc/exec',
+    token: 'ShWjnQPio2zyBKiz8qf5YOmUQ-DD1nnq3QWeFCZDv50',
+  },
+};
+
+async function backendGet(backend, action, params) {
+  const cfg = BACKENDS[backend];
+  const url = new URL(cfg.url);
+  url.searchParams.set('token', cfg.token);
+  if (action) url.searchParams.set('action', action);
+  Object.entries(params || {}).forEach(([k, v]) => url.searchParams.set(k, v));
+  const res = await fetch(url.toString());
+  const data = await res.json();
+  if (data && data.error) throw new Error(`${cfg.label}: ${data.error}`);
+  return data;
+}
+
+// ── Address join key — simple normalize (case/punctuation/abbreviation),
+// not a flagged-mismatch system. Deliberate choice per this repo's
+// CLAUDE.md, not an oversight. ──
+const STREET_ABBR = {
+  st: 'street', dr: 'drive', ln: 'lane', ct: 'court', ter: 'terrace',
+  pl: 'place', cir: 'circle', blvd: 'boulevard', ave: 'avenue', rd: 'road',
+  pkwy: 'parkway', trl: 'trail', xing: 'crossing', sq: 'square', hwy: 'highway',
+};
+function normalizeAddress(addr) {
+  if (!addr) return '';
+  let s = addr.toLowerCase();
+  s = s.replace(/\s*-\s*(lot|bldg)\.?\s*#?\s*\S*\s*$/i, ''); // strip "- Lot 160" / "- BLDG 3" suffixes
+  s = s.replace(/[.,]/g, '');
+  s = s.replace(/\s+/g, ' ').trim();
+  s = s.split(' ').map(w => STREET_ABBR[w] || w).join(' ');
+  return s;
+}
+
+// Superintendent-to-neighborhood map, per this repo's CLAUDE.md domain
+// reference (authoritative here — more complete than the 3-entry map
+// baked into Schedule Trend's own index.html, which predates Ashton).
+const SUBDIVISION_SUPERINTENDENT = {
+  'woodland hills': 'Chris',
+  'ranch villas': 'Chris',
+  'ranch villas of prairie farms': 'Chris',
+  'prairie farms': 'Jason',
+  'canyon lakes': 'Jack',
+  'ashton': 'Ashton',
+};
+function superintendentFor(subdivision) {
+  if (!subdivision) return '—';
+  return SUBDIVISION_SUPERINTENDENT[subdivision.trim().toLowerCase()] || '—';
+}
+
+// ════════════════════════════════════════════════════════════════
+// Schedule Trend logic — copied from that repo's own index.html
+// (STAGE_ORDER, DURATION_BASELINE, classifyDrift, buildTimeline) per
+// this repo's CLAUDE.md: "Stage vocabulary is STAGE_ORDER in that
+// repo's own index.html — reuse it rather than re-inventing a stage
+// list here." Kept verbatim rather than re-derived so drift/stuck
+// classification here matches what Schedule Trend itself would say.
+// ════════════════════════════════════════════════════════════════
+const STAGE_ORDER = [
+  'HOLD PAINT', 'Paint Ready/Painting', "Trimm'd", 'Triming', 'Trim Ready-HOLD', 'Trim Rdy',
+  "Tape'g", 'Hung', 'Batts', 'RI Passed', 'ReRI Inspect', 'RI Inspect',
+  'E-Mech', 'Furdown', 'P-Mech', 'M-Mech', 'Roof',
+  'Current', "Next (Window RO's)", 'Upcoming (Add T)', 'On Deck',
+  'WFF', 'Walls, Waterproofing, Backfilled, Ground Rough', 'Dug/Footing', 'Staked/Applied',
+];
+const DURATION_BASELINE = {
+  'Roof': { min: 4, typical: 4, max: 4 },
+  'M-Mech': { min: 5, typical: 12, max: 24 },
+  'P-Mech': { min: 5, typical: 5, max: 12 },
+  'Furdown': { min: 1, typical: 1, max: 4 },
+  'E-Mech': { min: 10, typical: 18, max: 22 },
+  'Hung': { min: 1, typical: 2, max: 2 },
+  "Tape'g": { min: 7, typical: 8, max: 9 },
+  'RI Inspect': { min: 4, typical: 8, max: 14 },
+  'ReRI Inspect': { min: 4, typical: 8, max: 14 },
+  'Batts': { min: 1, typical: 1, max: 1 },
+  'Trim Rdy': { min: 1, typical: 1, max: 1 },
+  'Triming': { min: 6, typical: 15, max: 40 },
+  'Paint Ready/Painting': { min: 7, typical: 10, max: 17 },
+};
+const STALL_MODE_MAX_DAYS = 5;
+function classifyDrift(stage, days, weeksSeen) {
+  const b = DURATION_BASELINE[stage];
+  if (!b) return null;
+  if (b.max <= STALL_MODE_MAX_DAYS) {
+    if (weeksSeen >= 3) return 'stuck';
+    if (weeksSeen >= 2) return 'watch';
+    return 'normal';
+  }
+  if (days > b.max * 1.5) return 'stuck';
+  if (days > b.max) return 'watch';
+  return 'normal';
+}
+function stageRank(stage) {
+  const i = STAGE_ORDER.indexOf(stage);
+  return i === -1 ? STAGE_ORDER.length : i;
+}
+function daysBetween(a, b) {
+  return Math.round((new Date(b + 'T00:00:00') - new Date(a + 'T00:00:00')) / 86400000);
+}
+function businessDaysBetween(a, b) {
+  let start = new Date(a + 'T00:00:00');
+  let end = new Date(b + 'T00:00:00');
+  if (end < start) { const t = start; start = end; end = t; }
+  let count = 0;
+  const cur = new Date(start);
+  cur.setDate(cur.getDate() + 1);
+  while (cur <= end) {
+    const day = cur.getDay();
+    if (day !== 0 && day !== 6) count++;
+    cur.setDate(cur.getDate() + 1);
+  }
+  return count;
+}
+function confirmedDate(snap) {
+  if (snap.statusDate && daysBetween(snap.statusDate, snap.weekDate) >= 0) return snap.statusDate;
+  return snap.weekDate;
+}
+function buildTimeline(rows) {
+  const sorted = [...rows].sort((a, b) => a.weekDate.localeCompare(b.weekDate));
+  const runs = [];
+  sorted.forEach((r) => {
+    const last = runs[runs.length - 1];
+    if (last && last.stage === r.stage) last.snapshots.push(r);
+    else runs.push({ stage: r.stage, snapshots: [r] });
+  });
+  const segments = [];
+  for (let i = 0; i < runs.length; i++) {
+    const run = runs[i];
+    const isLast = i === runs.length - 1;
+    const firstSnap = run.snapshots[0];
+    let days;
+    if (!isLast) {
+      const nextFirstSnap = runs[i + 1].snapshots[0];
+      const start = confirmedDate(firstSnap);
+      const end = confirmedDate(nextFirstSnap);
+      days = businessDaysBetween(start, end);
+    } else {
+      const start = confirmedDate(firstSnap);
+      days = businessDaysBetween(start, new Date().toISOString().slice(0, 10));
+    }
+    segments.push({ stage: run.stage, days: Math.max(1, days), ongoing: isLast, weeksSeen: run.snapshots.length });
+  }
+  return segments;
+}
+// pct-complete for the dial: furthest-along stage (index 0) = ~100%,
+// earliest stage (last index) = ~0%. ASSUMPTION: linear across
+// STAGE_ORDER's rank, not weighted by real stage duration — good
+// enough for "where roughly is this house" at a glance, flag if it
+// reads misleading in practice.
+function scheduleStatusByAddress(allRows) {
+  const byAddr = {};
+  allRows.forEach((r) => {
+    const key = normalizeAddress(r.address);
+    (byAddr[key] = byAddr[key] || []).push(r);
+  });
+  const out = {};
+  Object.entries(byAddr).forEach(([key, rows]) => {
+    const segments = buildTimeline(rows);
+    const last = segments[segments.length - 1];
+    if (!last) return;
+    const drift = last.ongoing ? classifyDrift(last.stage, last.days, last.weeksSeen) : null;
+    const rank = stageRank(last.stage);
+    const pct = Math.round((1 - rank / (STAGE_ORDER.length - 1)) * 100);
+    let status = 'good';
+    if (drift === 'watch') status = 'warning';
+    if (drift === 'stuck') status = 'critical';
+    const note = drift && drift !== 'normal'
+      ? `${last.stage} — ${drift === 'stuck' ? 'stuck' : 'running long'}`
+      : last.stage;
+    out[key] = { pct: Math.max(0, Math.min(100, pct)), status, note };
+  });
+  return out;
+}
+
+// ════════════════════════════════════════════════════════════════
+// Per-tool status/pct rules for BuildTrack, Scope Deviation, and
+// PunchTrack. ASSUMPTION: no existing rubric for these three (unlike
+// Schedule Trend, which already has classifyDrift) — thresholds below
+// are a first-pass judgment call, not a confirmed business rule. Flag
+// to Chris to confirm or adjust once seen live.
+// ════════════════════════════════════════════════════════════════
+function computeBuildTrackStatus(house) {
+  const m = house.milestones || {};
+  const dateKeys = Object.keys(m).filter(k => k !== 'walkthroughTime' && m[k]);
+  const today = new Date();
+  const passed = dateKeys.filter(k => new Date(m[k] + 'T00:00:00') <= today);
+  const pct = dateKeys.length ? Math.round((passed.length / dateKeys.length) * 100) : 0;
+  const closingDate = m.closing ? new Date(m.closing + 'T00:00:00') : null;
+  const coDate = m.co ? new Date(m.co + 'T00:00:00') : null;
+  const daysToClosing = closingDate ? Math.round((closingDate - today) / 86400000) : null;
+  let status = 'good';
+  if (daysToClosing !== null && daysToClosing >= 0) {
+    if (daysToClosing <= 14 && !coDate) status = 'critical';
+    else if (daysToClosing <= 14 && coDate > today) status = 'serious';
+    else if (daysToClosing <= 30 && (!coDate || coDate > today)) status = 'warning';
+  }
+  const note = closingDate
+    ? `Closes ${closingDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`
+    : (dateKeys.length ? `${passed.length}/${dateKeys.length} milestones` : 'No milestones yet');
+  return { pct, status, note };
+}
+function computeScopeStatus(items) {
+  const uniq = {};
+  items.forEach((it) => { uniq[it.id] = it; });
+  const all = Object.values(uniq);
+  const total = all.length;
+  const resolved = all.filter((it) => it.markedOut && it.markedOut.done).length;
+  const open = total - resolved;
+  const pct = total ? Math.round((resolved / total) * 100) : 100;
+  let status = 'good';
+  if (open > 0) {
+    if (pct < 40) status = 'critical';
+    else if (pct < 70) status = 'serious';
+    else status = 'warning';
+  }
+  return { pct, status, note: `${open} open` };
+}
+function computePunchStatus(items) {
+  const total = items.length;
+  const completed = items.filter((it) => it.dateCompleted).length;
+  const flagged = items.filter((it) => it.status === 'flagged').length;
+  const pct = total ? Math.round((completed / total) * 100) : 100;
+  let status = 'good';
+  if (flagged > 0) status = 'critical';
+  else if (pct < 50) status = 'serious';
+  else if (pct < 90) status = 'warning';
+  return { pct, status, note: flagged ? `${flagged} flagged` : `${total - completed} open` };
+}
+
+const STATUS_META = {
+  good:     { color: 'var(--status-good)',     className: 'status-good',     text: 'On track' },
+  warning:  { color: 'var(--status-warning)',  className: 'status-warning',  text: 'Watch' },
+  serious:  { color: 'var(--status-serious)',  className: 'status-serious',  text: 'Slipping' },
+  critical: { color: 'var(--status-critical)', className: 'status-critical', text: 'Stuck' },
+};
+const STATUS_RANK = { critical: 0, serious: 1, warning: 2, good: 3 };
+const TOOLS = [
+  { key: 'buildtrack', label: 'BuildTrack' },
+  { key: 'scope',      label: 'Scope Dev' },
+  { key: 'punch',      label: 'PunchTrack' },
+  { key: 'sched',      label: 'Sched Trend' },
+];
+const MAX_VISIBLE = 5;
+
+// ── Data loading ──
+async function loadAll() {
+  const errors = [];
+  const houses = {}; // normalized address -> house shell
+
+  // BuildTrack — the master house list (subdivision, milestones, bonuses).
+  // ASSUMPTION: archived houses are excluded from the dashboard entirely
+  // (treated as no-longer-actively-managed), not folded into "closed" KPI.
+  let buildtrackByKey = {};
+  try {
+    const bt = await backendGet('buildtrack', null, {});
+    (bt.houses || []).filter(h => !h.archived).forEach((h) => {
+      const key = normalizeAddress(h.address);
+      buildtrackByKey[key] = h;
+      houses[key] = {
+        address: h.address,
+        subdivision: h.subdivision || '',
+        superintendent: superintendentFor(h.subdivision),
+        milestones: h.milestones || {},
+        bonuses: h.bonuses || {},
+        rings: { buildtrack: computeBuildTrackStatus(h), scope: null, punch: null, sched: null },
+      };
+    });
+  } catch (e) { errors.push(e.message || String(e)); }
+
+  // Scope Deviation — list jobs, then pull each job's items.
+  try {
+    const jobs = await backendGet('scope', 'listJobs', {});
+    const results = await Promise.all((jobs || []).map(async (j) => {
+      try {
+        const job = await backendGet('scope', 'getJob', { slug: j.slug });
+        return { address: j.address, status: computeScopeStatus(job.items || []) };
+      } catch (e) { return null; }
+    }));
+    results.filter(Boolean).forEach(({ address, status }) => {
+      const key = normalizeAddress(address);
+      if (!houses[key]) houses[key] = { address, subdivision: '', superintendent: '—', milestones: {}, bonuses: {}, rings: { buildtrack: null, scope: null, punch: null, sched: null } };
+      houses[key].rings.scope = status;
+    });
+  } catch (e) { errors.push(e.message || String(e)); }
+
+  // PunchTrack — list jobs, then pull each job's items.
+  try {
+    const jobs = await backendGet('punch', 'listJobs', {});
+    const results = await Promise.all((jobs || []).map(async (j) => {
+      try {
+        const job = await backendGet('punch', 'getJob', { slug: j.slug });
+        return { address: j.address, status: computePunchStatus(job.items || []) };
+      } catch (e) { return null; }
+    }));
+    results.filter(Boolean).forEach(({ address, status }) => {
+      const key = normalizeAddress(address);
+      if (!houses[key]) houses[key] = { address, subdivision: '', superintendent: '—', milestones: {}, bonuses: {}, rings: { buildtrack: null, scope: null, punch: null, sched: null } };
+      houses[key].rings.punch = status;
+    });
+  } catch (e) { errors.push(e.message || String(e)); }
+
+  // Schedule Trend — pull every available week, run the drift math across
+  // the combined history per address, keep only each house's latest status.
+  try {
+    const weeks = await backendGet('sched', 'listWeeks', {});
+    const weekRows = await Promise.all((weeks || []).map((w) => backendGet('sched', 'getWeek', { weekDate: w }).catch(() => [])));
+    const allRows = weekRows.flat();
+    const statusByKey = scheduleStatusByAddress(allRows);
+    // Also backfill subdivision for houses BuildTrack didn't have (shouldn't
+    // normally happen, but keeps the dashboard from silently dropping a house).
+    const addrByKey = {};
+    allRows.forEach(r => { addrByKey[normalizeAddress(r.address)] = { address: r.address, subdivision: r.subdivision }; });
+    Object.entries(statusByKey).forEach(([key, status]) => {
+      if (!houses[key]) {
+        const info = addrByKey[key] || {};
+        houses[key] = { address: info.address || key, subdivision: info.subdivision || '', superintendent: superintendentFor(info.subdivision), milestones: {}, bonuses: {}, rings: { buildtrack: null, scope: null, punch: null, sched: null } };
+      }
+      houses[key].rings.sched = status;
+    });
+  } catch (e) { errors.push(e.message || String(e)); }
+
+  return { houses: Object.values(houses), errors };
+}
+
+// ── UI pieces ──
+function KpiIcon({ name }) {
+  const icons = {
+    home: '<path d="M3 11l9-7 9 7"/><path d="M5 10v9a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1v-9"/>',
+    alert: '<circle cx="12" cy="12" r="9"/><path d="M12 8v5"/><circle cx="12" cy="16" r="0.5" fill="currentColor"/>',
+    check: '<circle cx="12" cy="12" r="9"/><path d="M8 12l3 3 5-6"/>',
+    list: '<path d="M8 6h13M8 12h13M8 18h13"/><circle cx="3.5" cy="6" r="1" fill="currentColor"/><circle cx="3.5" cy="12" r="1" fill="currentColor"/><circle cx="3.5" cy="18" r="1" fill="currentColor"/>',
+  };
+  return <svg className="kpi-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" dangerouslySetInnerHTML={{ __html: icons[name] }} />;
+}
+function KpiTile({ k }) {
+  return (
+    <div className="kpi">
+      <div className="kpi-top"><div className="kpi-label">{k.label}</div><KpiIcon name={k.icon} /></div>
+      <div className="kpi-value">{k.value}</div>
+      <div className={`kpi-sub ${k.tone}`}>{k.sub}</div>
+    </div>
+  );
+}
+function computeKpis(houses) {
+  const total = houses.length;
+  const flagged = houses.filter(h => TOOLS.some(t => h.rings[t.key] && (h.rings[t.key].status === 'serious' || h.rings[t.key].status === 'critical'))).length;
+  const closed = houses.filter(h => TOOLS.every(t => !h.rings[t.key] || h.rings[t.key].pct === 100)).length;
+  const activeJobs = houses.reduce((sum, h) => sum + TOOLS.filter(t => h.rings[t.key]).length, 0);
+  return [
+    { label: 'Total Houses', value: total, icon: 'home', sub: 'across the portfolio', tone: 'neutral' },
+    { label: 'Need Attention', value: flagged, icon: 'alert', sub: flagged ? 'slipping or stuck somewhere' : 'nothing flagged', tone: flagged ? 'warn' : 'ok' },
+    { label: 'Fully Closed', value: closed, icon: 'check', sub: 'complete in every tool', tone: 'ok' },
+    { label: 'Active Tool Jobs', value: activeJobs, icon: 'list', sub: 'total across all 4 tools', tone: 'neutral' },
+  ];
+}
+
+function Dial({ pct, status }) {
+  const st = STATUS_META[status];
+  const r = 18, c = 2 * Math.PI * r;
+  const offset = c - (pct / 100) * c;
+  return (
+    <svg viewBox="0 0 40 40">
+      <circle className="dial-track" cx="20" cy="20" r={r} />
+      <circle className="dial-fill" cx="20" cy="20" r={r} stroke={st.color} strokeDasharray={c} strokeDashoffset={offset} />
+      <text x="20" y="24" textAnchor="middle" className="dial-pct">{pct}</text>
+    </svg>
+  );
+}
+function Row({ house, data }) {
+  const st = STATUS_META[data.status];
+  return (
+    <div className="row">
+      <div className="row-id">
+        <div className="row-address">{house.address}</div>
+        <div className="row-meta">{house.subdivision || '—'} · {house.superintendent}</div>
+      </div>
+      <div className="row-dial"><Dial pct={data.pct} status={data.status} /></div>
+      <div className="row-flag-slot">
+        {data.status !== 'good' && <span className={`row-flag ${st.className}`}>{st.text}</span>}
+      </div>
+      <div className="row-note">{data.note}</div>
+    </div>
+  );
+}
+function Section({ tool, houses }) {
+  const [open, setOpen] = useState(false);
+  const all = houses
+    .map(h => ({ house: h, data: h.rings[tool.key] }))
+    .filter(e => e.data)
+    .sort((a, b) => STATUS_RANK[a.data.status] - STATUS_RANK[b.data.status]);
+  const flagged = all.filter(e => e.data.status === 'serious' || e.data.status === 'critical').length;
+  const visible = open ? all : all.slice(0, MAX_VISIBLE);
+  const hidden = all.length - visible.length;
+  return (
+    <div className="section">
+      <div className="section-head" onClick={() => setOpen(o => !o)}>
+        <div className="section-title-wrap">
+          <div className="section-title">{tool.label}</div>
+          <div className="section-stat"><b>{all.length}</b> active{flagged ? <> · <b>{flagged}</b> need attention</> : null}</div>
+        </div>
+        <div className="section-link">
+          {open ? 'Collapse' : `Open ${tool.label}`}
+          <svg className={open ? 'open' : ''} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M9 6l6 6-6 6" /></svg>
+        </div>
+      </div>
+      <div className="rows">
+        {visible.length
+          ? visible.map(e => <Row key={e.house.address} house={e.house} data={e.data} />)
+          : <div className="empty-row">No houses in this tool yet</div>}
+      </div>
+      {hidden > 0 && <div className="more-row" onClick={() => setOpen(true)}>+ {hidden} more — worst-first shown above, click to see all</div>}
+    </div>
+  );
+}
+
+// Closing This Week — BuildTrack milestones only. Bonus eligibility from
+// bonuses.closing; inspection-gate eligibility from milestones.roughIn and
+// milestones.co (the only two gates actually tracked anywhere, per Chris —
+// deliberately not showing the other inspection gates from CLAUDE.md's
+// domain reference since there's no real data source for them yet).
+function ClosingsRow({ houses }) {
+  const today = new Date();
+  const weekOut = new Date(today); weekOut.setDate(weekOut.getDate() + 7);
+  const withDates = houses
+    .filter(h => h.milestones && h.milestones.closing)
+    .map(h => ({ house: h, date: new Date(h.milestones.closing + 'T00:00:00') }))
+    .filter(w => w.date >= new Date(today.toDateString()) && w.date <= weekOut)
+    .sort((a, b) => a.date - b.date);
+  const dayFmt = d => d.toLocaleDateString('en-US', { weekday: 'short' }).toUpperCase();
+  const dateFmt = d => d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  return (
+    <div className="closings">
+      <div className="closings-head">
+        <div className="closings-title">Closing This Week</div>
+        <div className="closings-sub">{withDates.length} scheduled</div>
+      </div>
+      <div className="closings-row">
+        {withDates.length ? withDates.map(w => {
+          const m = w.house.milestones;
+          const roughInDone = m.roughIn && new Date(m.roughIn + 'T00:00:00') <= today;
+          const coDone = m.co && new Date(m.co + 'T00:00:00') <= today;
+          const bonus = !!(w.house.bonuses && w.house.bonuses.closing);
+          return (
+            <div className="closing-card" key={w.house.address}>
+              <div className="closing-day-line">
+                <span className="closing-day">{dayFmt(w.date)}</span>
+                <span className="closing-date">{dateFmt(w.date)}</span>
+              </div>
+              <div className="closing-address">{w.house.address}</div>
+              <div className="closing-meta">{w.house.subdivision || '—'} · {w.house.superintendent}</div>
+              <div className="closing-badges">
+                <span className={`closing-badge ${bonus ? 'badge-yes' : 'badge-no'}`}>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">{bonus ? <path d="M20 6L9 17l-5-5" /> : <circle cx="12" cy="12" r="9" />}</svg>
+                  {bonus ? 'Bonus eligible' : 'Not yet eligible'}
+                </span>
+                <span className={`closing-badge ${roughInDone ? 'badge-yes' : 'badge-no'}`}>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">{roughInDone ? <path d="M20 6L9 17l-5-5" /> : <circle cx="12" cy="12" r="9" />}</svg>
+                  Rough-in {roughInDone ? 'cleared' : 'not cleared'}
+                </span>
+                <span className={`closing-badge ${coDone ? 'badge-yes' : 'badge-no'}`}>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">{coDone ? <path d="M20 6L9 17l-5-5" /> : <circle cx="12" cy="12" r="9" />}</svg>
+                  Final {coDone ? 'cleared' : 'not cleared'}
+                </span>
+              </div>
+            </div>
+          );
+        }) : <div className="closings-empty">Nothing closing this week</div>}
+      </div>
+    </div>
+  );
+}
+
+// Consolidated single-house view — one card, all four tools' rings side by
+// side, so a search hit answers "where does this house stand everywhere"
+// in one look instead of hunting through four separate sections.
+function HouseDetail({ house, onClose }) {
+  return (
+    <div className="detail-card">
+      <div className="detail-head">
+        <div>
+          <div className="detail-address">{house.address}</div>
+          <div className="detail-meta">{house.subdivision || '—'} · {house.superintendent}</div>
+        </div>
+        <div className="detail-close" onClick={onClose}>Clear search ✕</div>
+      </div>
+      <div className="detail-grid">
+        {TOOLS.map(t => {
+          const data = house.rings[t.key];
+          return (
+            <div className="detail-tool" key={t.key}>
+              {data ? <Dial pct={data.pct} status={data.status} /> : null}
+              <div>
+                <div className="detail-tool-label">{t.label}</div>
+                {data
+                  ? <div className="detail-tool-note">{data.note}{data.status !== 'good' ? ` — ${STATUS_META[data.status].text}` : ''}</div>
+                  : <div className="detail-tool-empty">No job in this tool yet</div>}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function App() {
+  const [houses, setHouses] = useState([]);
+  const [errors, setErrors] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [lastSync, setLastSync] = useState(null);
+  const [neighborhood, setNeighborhood] = useState('All');
+  const [search, setSearch] = useState('');
+  const [selectedAddress, setSelectedAddress] = useState(null);
+  const [nbOpen, setNbOpen] = useState(false);
+
+  const refresh = useCallback(async () => {
+    setLoading(true);
+    try {
+      const { houses: h, errors: e } = await loadAll();
+      setHouses(h);
+      setErrors(e);
+      setLastSync(new Date());
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { refresh(); }, [refresh]);
+
+  const neighborhoods = useMemo(() => {
+    const set = new Set(houses.map(h => h.subdivision).filter(Boolean));
+    return ['All', ...Array.from(set).sort()];
+  }, [houses]);
+
+  const filtered = useMemo(() => {
+    if (neighborhood === 'All') return houses;
+    return houses.filter(h => h.subdivision === neighborhood);
+  }, [houses, neighborhood]);
+
+  const searchMatches = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (q.length < 2) return [];
+    return houses.filter(h => h.address.toLowerCase().includes(q) || normalizeAddress(h.address).includes(normalizeAddress(q))).slice(0, 8);
+  }, [houses, search]);
+
+  const selectedHouse = useMemo(() => {
+    if (!selectedAddress) return null;
+    return houses.find(h => h.address === selectedAddress) || null;
+  }, [houses, selectedAddress]);
+
+  const syncLabel = useMemo(() => {
+    if (!lastSync) return '';
+    const secs = Math.round((Date.now() - lastSync.getTime()) / 1000);
+    if (secs < 60) return `synced ${secs}s ago`;
+    return `synced ${Math.round(secs / 60)}m ago`;
+  }, [lastSync, loading]);
+
+  return (
+    <div className="wrap">
+      <header className="top">
+        <div>
+          <h1 className="cond">Prieb Homes — Portfolio</h1>
+          <div className="subtitle mono">Live from BuildTrack, Scope Deviation, PunchTrack &amp; Schedule Trend</div>
+        </div>
+      </header>
+
+      <div className="toolbar">
+        <div className="nb-dropdown">
+          <span className="chip active" onClick={() => setNbOpen(o => !o)}>{neighborhood} ▾</span>
+          {nbOpen && (
+            <div className="nb-dropdown-list">
+              {neighborhoods.map(n => (
+                <div
+                  key={n}
+                  className={`nb-dropdown-item${neighborhood === n ? ' active' : ''}`}
+                  onClick={() => { setNeighborhood(n); setNbOpen(false); }}
+                >
+                  {n}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+        <div className="search-wrap">
+          <input
+            className="search-input"
+            type="text"
+            placeholder="Search address…"
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+          />
+          {search.trim().length >= 2 && !selectedHouse && (
+            <div className="search-results">
+              {searchMatches.length
+                ? searchMatches.map(h => (
+                  <div key={h.address} className="search-result-item" onClick={() => { setSelectedAddress(h.address); setSearch(h.address); }}>
+                    {h.address}
+                  </div>
+                ))
+                : <div className="search-result-empty">No matching address</div>}
+            </div>
+          )}
+        </div>
+        <button className="refresh-btn" onClick={refresh} disabled={loading}>
+          <svg className={loading ? 'spin' : ''} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M21 12a9 9 0 1 1-3-6.7" /><path d="M21 4v6h-6" /></svg>
+          {loading ? 'Refreshing…' : 'Refresh'}
+        </button>
+        {lastSync && <span className="last-sync mono">{syncLabel}</span>}
+      </div>
+
+      {errors.length > 0 && (
+        <div className="errors">
+          {errors.length} source{errors.length > 1 ? 's' : ''} failed to load — showing what did load. {errors.join(' · ')}
+        </div>
+      )}
+
+      {loading && houses.length === 0 ? (
+        <div className="loading-wrap mono">Loading portfolio…</div>
+      ) : selectedHouse ? (
+        <HouseDetail house={selectedHouse} onClose={() => { setSelectedAddress(null); setSearch(''); }} />
+      ) : (
+        <React.Fragment>
+          <div className="kpis">{computeKpis(filtered).map(k => <KpiTile key={k.label} k={k} />)}</div>
+          <ClosingsRow houses={filtered} />
+          <div className="sections">{TOOLS.map(t => <Section key={t.key} tool={t} houses={filtered} />)}</div>
+          <div className="legend">
+            {Object.values(STATUS_META).map(s => (
+              <div className="legend-item" key={s.text}><span className="dot" style={{ background: s.color }} /> {s.text}</div>
+            ))}
+            <div className="legend-item">Dial color = status, dial fill = % complete</div>
+            <div className="legend-item">Worst-first: flagged houses sort to the top of each section</div>
+          </div>
+        </React.Fragment>
+      )}
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+<script>
+  // Manual transform instead of Babel's auto script-tag scan — the
+  // scanner's default JSX runtime is "automatic", which emits an ES
+  // `import` statement that a plain <script> can't execute. Forcing
+  // "classic" here keeps this a no-build-step single file.
+  var src = document.getElementById('app-source').textContent;
+  var out = Babel.transform(src, { presets: [['react', { runtime: 'classic' }]] }).code;
+  (0, eval)(out);
+</script>
+</body>
+</html>
