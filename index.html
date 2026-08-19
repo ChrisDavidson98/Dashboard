@@ -240,8 +240,11 @@ const STREET_ABBR = {
   pkwy: 'parkway', trl: 'trail', xing: 'crossing', sq: 'square', hwy: 'highway',
 };
 function normalizeAddress(addr) {
-  if (!addr) return '';
-  let s = addr.toLowerCase();
+  if (!addr && addr !== 0) return '';
+  // Google Sheets/Apps Script returns a bare house number (no street name
+  // yet, e.g. a new lot still at foundation stage) as a JSON number, not a
+  // string — coerce before calling string methods on it.
+  let s = String(addr).toLowerCase();
   s = s.replace(/\s*-\s*(lot|bldg)\.?\s*#?\s*\S*\s*$/i, ''); // strip "- Lot 160" / "- BLDG 3" suffixes
   s = s.replace(/[.,]/g, '');
   s = s.replace(/\s+/g, ' ').trim();
@@ -536,7 +539,7 @@ async function loadAll() {
     Object.entries(statusByKey).forEach(([key, status]) => {
       if (!houses[key]) {
         const info = addrByKey[key] || {};
-        houses[key] = { address: info.address || key, subdivision: info.subdivision || '', superintendent: superintendentFor(info.subdivision), milestones: {}, bonuses: {}, buildtrackId: null, scopeSlug: null, punchSlug: null, rings: { buildtrack: null, scope: null, punch: null, sched: null } };
+        houses[key] = { address: String(info.address || key), subdivision: info.subdivision || '', superintendent: superintendentFor(info.subdivision), milestones: {}, bonuses: {}, buildtrackId: null, scopeSlug: null, punchSlug: null, rings: { buildtrack: null, scope: null, punch: null, sched: null } };
       }
       houses[key].rings.sched = status;
     });
@@ -766,7 +769,7 @@ function App() {
   const searchMatches = useMemo(() => {
     const q = search.trim().toLowerCase();
     if (q.length < 2) return [];
-    return houses.filter(h => h.address.toLowerCase().includes(q) || normalizeAddress(h.address).includes(normalizeAddress(q))).slice(0, 8);
+    return houses.filter(h => String(h.address).toLowerCase().includes(q) || normalizeAddress(h.address).includes(normalizeAddress(q))).slice(0, 8);
   }, [houses, search]);
 
   const selectedHouse = useMemo(() => {
