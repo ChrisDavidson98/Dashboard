@@ -639,25 +639,25 @@ function Section({ tool, houses, onSelect }) {
   );
 }
 
-// Closing This Week — BuildTrack milestones only. Bonus eligibility from
+// Upcoming Closings — BuildTrack milestones only, every future closing date
+// (not just this week), soonest first. Bonus eligibility from
 // bonuses.closing; inspection-gate eligibility from milestones.roughIn and
 // milestones.co (the only two gates actually tracked anywhere, per Chris —
 // deliberately not showing the other inspection gates from CLAUDE.md's
 // domain reference since there's no real data source for them yet).
 function ClosingsRow({ houses }) {
   const today = new Date();
-  const weekOut = new Date(today); weekOut.setDate(weekOut.getDate() + 7);
   const withDates = houses
     .filter(h => h.milestones && h.milestones.closing)
     .map(h => ({ house: h, date: new Date(h.milestones.closing + 'T00:00:00') }))
-    .filter(w => w.date >= new Date(today.toDateString()) && w.date <= weekOut)
+    .filter(w => w.date >= new Date(today.toDateString()))
     .sort((a, b) => a.date - b.date);
   const dayFmt = d => d.toLocaleDateString('en-US', { weekday: 'short' }).toUpperCase();
   const dateFmt = d => d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
   return (
     <div className="closings">
       <div className="closings-head">
-        <div className="closings-title">Closing This Week</div>
+        <div className="closings-title">Upcoming Closings</div>
         <div className="closings-sub">{withDates.length} scheduled</div>
       </div>
       <div className="closings-row">
@@ -690,7 +690,7 @@ function ClosingsRow({ houses }) {
               </div>
             </div>
           );
-        }) : <div className="closings-empty">Nothing closing this week</div>}
+        }) : <div className="closings-empty">No upcoming closings scheduled</div>}
       </div>
     </div>
   );
