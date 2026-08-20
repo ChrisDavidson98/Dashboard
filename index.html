@@ -443,18 +443,19 @@ function computeScopeStatus(items) {
     else if (pct < 70) status = 'serious';
     else status = 'warning';
   }
-  return { pct, status, note: `${open} open` };
+  return { pct, status, note: `${open} open`, openCount: open };
 }
 function computePunchStatus(items) {
   const total = items.length;
   const completed = items.filter((it) => it.dateCompleted).length;
   const flagged = items.filter((it) => it.status === 'flagged').length;
+  const open = total - completed;
   const pct = total ? Math.round((completed / total) * 100) : 100;
   let status = 'good';
   if (flagged > 0) status = 'critical';
   else if (pct < 50) status = 'serious';
   else if (pct < 90) status = 'warning';
-  return { pct, status, note: flagged ? `${flagged} flagged` : `${total - completed} open` };
+  return { pct, status, note: flagged ? `${flagged} flagged` : `${open} open`, openCount: open };
 }
 
 const STATUS_META = {
@@ -630,12 +631,38 @@ function Row({ house, data, toolKey, onSelect }) {
     </div>
   );
 }
+// Each tool sorts by whatever ordering is actually useful for that tool,
+// per Chris — not one worst-first rule applied everywhere. BuildTrack: by
+// soonest upcoming closing (no closing date sorts last), since a house
+// closing soon while still short on milestones is the one to catch early.
+// Scope Deviation / PunchTrack: by most open items, since that's the
+// direct "what needs the most work" signal. Schedule Trend: worst-first by
+// status, since drift/stuck is already the point of that tool.
+const SORTERS = {
+  buildtrack: (entries) => [...entries].sort((a, b) => {
+    const ad = a.house.milestones && a.house.milestones.closing;
+    const bd = b.house.milestones && b.house.milestones.closing;
+    if (!ad && !bd) return 0;
+    if (!ad) return 1;
+    if (!bd) return -1;
+    return new Date(ad) - new Date(bd);
+  }),
+  scope: (entries) => [...entries].sort((a, b) => (b.data.openCount || 0) - (a.data.openCount || 0)),
+  punch: (entries) => [...entries].sort((a, b) => (b.data.openCount || 0) - (a.data.openCount || 0)),
+  sched: (entries) => [...entries].sort((a, b) => STATUS_RANK[a.data.status] - STATUS_RANK[b.data.status]),
+};
+const SORT_HINTS = {
+  buildtrack: 'soonest closing shown above',
+  scope: 'most open items shown above',
+  punch: 'most open items shown above',
+  sched: 'worst-first shown above',
+};
+
 function Section({ tool, houses, onSelect }) {
   const [open, setOpen] = useState(false);
-  const all = houses
-    .map(h => ({ house: h, data: h.rings[tool.key] }))
-    .filter(e => e.data)
-    .sort((a, b) => STATUS_RANK[a.data.status] - STATUS_RANK[b.data.status]);
+  const all = SORTERS[tool.key](
+    houses.map(h => ({ house: h, data: h.rings[tool.key] })).filter(e => e.data)
+  );
   const flagged = all.filter(e => e.data.status === 'serious' || e.data.status === 'critical').length;
   const visible = open ? all : all.slice(0, MAX_VISIBLE);
   const hidden = all.length - visible.length;
@@ -656,7 +683,7 @@ function Section({ tool, houses, onSelect }) {
           ? visible.map(e => <Row key={e.house.address} house={e.house} data={e.data} toolKey={tool.key} onSelect={onSelect} />)
           : <div className="empty-row">No houses in this tool yet</div>}
       </div>
-      {hidden > 0 && <div className="more-row" onClick={() => setOpen(true)}>+ {hidden} more — worst-first shown above, click to see all</div>}
+      {hidden > 0 && <div className="more-row" onClick={() => setOpen(true)}>+ {hidden} more — {SORT_HINTS[tool.key]}, click to see all</div>}
     </div>
   );
 }
@@ -876,7 +903,7 @@ function App() {
               <div className="legend-item" key={s.text}><span className="dot" style={{ background: s.color }} /> {s.text}</div>
             ))}
             <div className="legend-item">Dial color = status, dial fill = % complete</div>
-            <div className="legend-item">Worst-first: flagged houses sort to the top of each section</div>
+            <div className="legend-item">BuildTrack: soonest closing first · Scope Dev &amp; PunchTrack: most open items first · Sched Trend: worst-first</div>
           </div>
         </React.Fragment>
       )}
