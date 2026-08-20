@@ -180,19 +180,23 @@ const { useState, useEffect, useMemo, useCallback } = React;
 // Rate limiting on each backend is the real protection, not secrecy
 // of the token — see this repo's CLAUDE.md before "fixing" that.
 // ════════════════════════════════════════════════════════════════
-// Live front-end pages for the tools that support landing on one specific
-// record via a URL param (added to their own repos alongside this feature).
-// Schedule Trend has no per-house record to land on — it's populated by
-// weekly PDF uploads, not per-house entry — so it isn't listed here.
+// Live front-end pages for the four tools. BuildTrack, Scope Deviation,
+// and PunchTrack support landing on one specific record via a URL param
+// (added to their own repos alongside this feature). Schedule Trend has
+// no per-house record to land on — it's populated by weekly PDF uploads,
+// not per-house entry — so its rows just open the tool generally (its
+// own default view is already Browse, so no param is needed there).
 const TOOL_PAGES = {
   buildtrack: 'https://chrisdavidson98.github.io/BuildTrack-Unified/',
   scope: 'https://chrisdavidson98.github.io/BuildTrack-Unified/',
   punch: 'https://chrisdavidson98.github.io/PunchTrack/',
+  sched: 'https://chrisdavidson98.github.io/ScheduleTrend/',
 };
 function deepLinkFor(toolKey, house) {
   if (toolKey === 'buildtrack' && house.buildtrackId) return `${TOOL_PAGES.buildtrack}?house=${encodeURIComponent(house.buildtrackId)}`;
   if (toolKey === 'scope' && house.scopeSlug) return `${TOOL_PAGES.scope}?scope=${encodeURIComponent(house.scopeSlug)}`;
   if (toolKey === 'punch' && house.punchSlug) return `${TOOL_PAGES.punch}?job=${encodeURIComponent(house.punchSlug)}`;
+  if (toolKey === 'sched') return TOOL_PAGES.sched;
   return null;
 }
 
