@@ -404,12 +404,17 @@ function scheduleStatusByAddress(allRows) {
 // are a first-pass judgment call, not a confirmed business rule. Flag
 // to Chris to confirm or adjust once seen live.
 // ════════════════════════════════════════════════════════════════
+// Fixed checklist, copied from BuildTrack-Unified's own MILESTONES const —
+// the denominator for "how complete is this house" needs to be the full
+// set of possible milestones, not just whichever fields happen to have a
+// date entered so far (a house with only 1 of 9 logged would otherwise
+// read as 100% complete the moment that lone date passes).
+const BUILDTRACK_MILESTONE_KEYS = ['tempElectric', 'gasRiser', 'roughIn', 'permElectric', 'permGas', 'co', 'walkthrough', 'finalClean', 'closing'];
 function computeBuildTrackStatus(house) {
   const m = house.milestones || {};
-  const dateKeys = Object.keys(m).filter(k => k !== 'walkthroughTime' && m[k]);
   const today = new Date();
-  const passed = dateKeys.filter(k => new Date(m[k] + 'T00:00:00') <= today);
-  const pct = dateKeys.length ? Math.round((passed.length / dateKeys.length) * 100) : 0;
+  const passed = BUILDTRACK_MILESTONE_KEYS.filter(k => m[k] && new Date(m[k] + 'T00:00:00') <= today);
+  const pct = Math.round((passed.length / BUILDTRACK_MILESTONE_KEYS.length) * 100);
   const closingDate = m.closing ? new Date(m.closing + 'T00:00:00') : null;
   const coDate = m.co ? new Date(m.co + 'T00:00:00') : null;
   const daysToClosing = closingDate ? Math.round((closingDate - today) / 86400000) : null;
@@ -421,7 +426,7 @@ function computeBuildTrackStatus(house) {
   }
   const note = closingDate
     ? `Closes ${closingDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`
-    : (dateKeys.length ? `${passed.length}/${dateKeys.length} milestones` : 'No milestones yet');
+    : `${passed.length}/${BUILDTRACK_MILESTONE_KEYS.length} milestones`;
   return { pct, status, note };
 }
 function computeScopeStatus(items) {
@@ -531,16 +536,26 @@ async function loadAll() {
 
   // Schedule Trend — pull every available week, run the drift math across
   // the combined history per address, keep only each house's latest status.
+  // Only houses present in the MOST RECENT week count as active: Chris
+  // removes a house from Schedule Trend's own weekly list once it's done
+  // (e.g. finished painting) — without this filter, a finished house's
+  // last-seen snapshot from weeks ago would keep reading as "ongoing" and
+  // could misreport as stalled purely from aging out of tracking, not from
+  // anything actually being wrong.
   try {
-    const weeks = await backendGet('sched', 'listWeeks', {});
-    const weekRows = await Promise.all((weeks || []).map((w) => backendGet('sched', 'getWeek', { weekDate: w }).catch(() => [])));
-    const allRows = weekRows.flat();
+    const weeksRaw = await backendGet('sched', 'listWeeks', {});
+    const weeks = [...(weeksRaw || [])].sort().reverse(); // ISO dates sort correctly; most recent first
+    const weekRowsList = await Promise.all(weeks.map((w) => backendGet('sched', 'getWeek', { weekDate: w }).catch(() => [])));
+    const allRows = weekRowsList.flat();
     const statusByKey = scheduleStatusByAddress(allRows);
+    const latestWeekRows = weekRowsList[0] || [];
+    const currentAddresses = new Set(latestWeekRows.map(r => normalizeAddress(r.address)));
     // Also backfill subdivision for houses BuildTrack didn't have (shouldn't
     // normally happen, but keeps the dashboard from silently dropping a house).
     const addrByKey = {};
     allRows.forEach(r => { addrByKey[normalizeAddress(r.address)] = { address: r.address, subdivision: r.subdivision }; });
     Object.entries(statusByKey).forEach(([key, status]) => {
+      if (!currentAddresses.has(key)) return; // no longer on Schedule Trend's active list
       if (!houses[key]) {
         const info = addrByKey[key] || {};
         houses[key] = { address: String(info.address || key), subdivision: info.subdivision || '', superintendent: superintendentFor(info.subdivision), milestones: {}, bonuses: {}, buildtrackId: null, scopeSlug: null, punchSlug: null, rings: { buildtrack: null, scope: null, punch: null, sched: null } };
