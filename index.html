@@ -413,8 +413,12 @@ const BUILDTRACK_MILESTONE_KEYS = ['tempElectric', 'gasRiser', 'roughIn', 'permE
 function computeBuildTrackStatus(house) {
   const m = house.milestones || {};
   const today = new Date();
-  const passed = BUILDTRACK_MILESTONE_KEYS.filter(k => m[k] && new Date(m[k] + 'T00:00:00') <= today);
-  const pct = Math.round((passed.length / BUILDTRACK_MILESTONE_KEYS.length) * 100);
+  // Per Chris: "complete" here means a date has been entered, not that the
+  // date has already occurred — unlike the bonus tracker, where a milestone
+  // isn't available until its date actually passes. A closing scheduled two
+  // weeks out is "good to go," not "not done yet."
+  const entered = BUILDTRACK_MILESTONE_KEYS.filter(k => m[k]);
+  const pct = Math.round((entered.length / BUILDTRACK_MILESTONE_KEYS.length) * 100);
   const closingDate = m.closing ? new Date(m.closing + 'T00:00:00') : null;
   const coDate = m.co ? new Date(m.co + 'T00:00:00') : null;
   const daysToClosing = closingDate ? Math.round((closingDate - today) / 86400000) : null;
@@ -426,7 +430,7 @@ function computeBuildTrackStatus(house) {
   }
   const note = closingDate
     ? `Closes ${closingDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`
-    : `${passed.length}/${BUILDTRACK_MILESTONE_KEYS.length} milestones`;
+    : `${entered.length}/${BUILDTRACK_MILESTONE_KEYS.length} milestones`;
   return { pct, status, note };
 }
 function computeScopeStatus(items) {
